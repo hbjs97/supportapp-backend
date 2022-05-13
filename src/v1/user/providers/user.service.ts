@@ -75,4 +75,8 @@ export class UserService {
       });
     return user.toDto();
   }
+
+  async getReceivers(id: UUID[]): Promise<UserEntity[]> {
+    return await this.userRepository.createQueryBuilder().where('id IN (:id)', { id }).getMany();
+  }
 }

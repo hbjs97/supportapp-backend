@@ -44,6 +44,15 @@ export class MallController {
     return malls.toDtos();
   }
 
+  @ApiOperation({ summary: '매장 조회' })
+  @Auth([Role.USER, Role.MERCHANT])
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ type: MallDto, description: '매장 조회 성공' })
+  @Get(':id')
+  public async getMall(@Param('id') id: string): Promise<MallDto> {
+    return (await this.mallService.getMallById(id)).toDto();
+  }
+
   @ApiOperation({ summary: '매장 등록' })
   @Auth([Role.MERCHANT])
   @HttpCode(HttpStatus.CREATED)

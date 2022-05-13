@@ -20,4 +20,9 @@ export const config = {
       bucketName: process.env.AWS_S3_BUCKET_NAME,
     },
   },
+
+  smtp: {
+    user: process.env.NAVER_EMAIL_ID,
+    pass: process.env.NAVER_PASSWORD,
+  },
 };

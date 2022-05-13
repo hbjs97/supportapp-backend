@@ -12,7 +12,7 @@ export class MallService {
   constructor(private mallRepository: MallRepository, private fileService: FileService) {}
 
   async createMall(userId: UUID, createMallDto: CreateMallDto, thumbnail?: IFile): Promise<MallEntity> {
-    const job = this.mallRepository.create({
+    const mall = this.mallRepository.create({
       ...createMallDto,
       geo: createMallDto.geo,
       createdBy: userId,
@@ -24,36 +24,38 @@ export class MallService {
 
     if (thumbnail) {
       const mallFile = await this.fileService.uploadImage(thumbnail);
-      Object.assign(job, { thumbnail: mallFile.location });
+      Object.assign(mall, { thumbnail: mallFile.location });
     }
 
     await this.mallRepository
       .createQueryBuilder()
       .insert()
-      .values(job)
+      .values(mall)
       .execute()
       .catch((error) => {
         throw new HttpException('매장 등록 실패', HttpStatus.INTERNAL_SERVER_ERROR);
       });
 
-    return job;
+    return mall;
   }
 
   async updateMall(id: string, updateMallDto: UpdateMallDto, thumbnail?: IFile): Promise<void> {
+    const mall = this.mallRepository.create(updateMallDto);
+
     if (thumbnail && !ValidatorProvider.isImage(thumbnail.mimetype)) {
       throw new FileNotImageException();
     }
 
     if (thumbnail) {
       const mallFile = await this.fileService.uploadImage(thumbnail);
-      Object.assign(updateMallDto, { thumbnail: mallFile.location });
+      Object.assign(mall, { thumbnail: mallFile.location });
     }
 
     await this.mallRepository
       .createQueryBuilder()
       .update(MallEntity)
       .where({ id })
-      .set(updateMallDto)
+      .set(mall)
       .execute()
       .catch((error) => {
         throw new HttpException('매장 수정 실패', HttpStatus.INTERNAL_SERVER_ERROR);
@@ -71,6 +73,18 @@ export class MallService {
     }
 
     return await getMallsQueryBuilder.getMany();
+  }
+
+  async getMallById(id: string): Promise<MallEntity> {
+    return await this.mallRepository
+      .createQueryBuilder('mall')
+      .addSelect(['mall.openAt < DATE_FORMAT(NOW(), "%H:%i") AND DATE_FORMAT(NOW(), "%H:%i") < mall.closeAt as isOpen'])
+      .innerJoinAndSelect('mall.user', 'user')
+      .where('mall.id = :id', { id })
+      .getOneOrFail()
+      .catch((error) => {
+        throw new HttpException('매장 조회 실패', HttpStatus.NOT_FOUND);
+      });
   }
 
   async getMyMalls(userId: UUID): Promise<MallEntity[]> {
